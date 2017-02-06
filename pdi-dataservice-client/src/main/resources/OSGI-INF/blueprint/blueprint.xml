@@ -17,4 +17,13 @@
         <pen:di-plugin type="org.pentaho.di.core.plugins.LifecyclePluginType" />
     </bean>
 
+    <service id="dataServiceLifecycleListener" ref="DataServiceLifecycleListener" interface="org.pentaho.di.core.lifecycle.LifecycleListener"/>
+
+    <service id="dataServiceLifecycleListenerExport" ref="DataServiceLifecycleListener" interface="org.pentaho.di.core.lifecycle.LifecycleListener">
+        <service-properties>
+            <entry key="service.exported.interfaces" value="*" />
+        </service-properties>
+    </service>
+
+
 </blueprint>

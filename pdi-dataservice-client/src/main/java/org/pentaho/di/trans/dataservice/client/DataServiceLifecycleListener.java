@@ -27,8 +27,10 @@ import org.pentaho.di.core.annotations.LifecyclePlugin;
 import org.pentaho.di.core.lifecycle.LifeEventHandler;
 import org.pentaho.di.core.lifecycle.LifecycleException;
 import org.pentaho.di.core.lifecycle.LifecycleListener;
+import org.pentaho.di.repository.Repository;
 import org.pentaho.di.trans.dataservice.jdbc.ThinConnection;
 import org.pentaho.di.ui.spoon.Spoon;
+import org.pentaho.metastore.api.IMetaStore;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -64,8 +66,13 @@ public class DataServiceLifecycleListener implements LifecycleListener {
   }
 
   @Override public void onStart( LifeEventHandler handler ) throws LifecycleException {
+    Spoon spoon = this.spoonSupplier.get();
+    onStart( spoon.getRepository(), spoon.getMetaStore() );
+  }
+
+  public void onStart( Repository repository, IMetaStore metaStore ) {
     if ( enabled.compareAndSet( false, true ) ) {
-      setup( this.dataServiceClientService.get() );
+      setup( this.dataServiceClientService.get(), repository, metaStore );
     }
   }
 
@@ -79,11 +86,26 @@ public class DataServiceLifecycleListener implements LifecycleListener {
     if ( enabled.get() && clientService != null ) {
       Spoon spoon = spoonSupplier.get();
 
-      clientService.setRepository( spoon.getRepository() );
-      clientService.setMetaStore( spoon.getMetaStore() );
+      setLocalClient( clientService, spoon.getRepository(), spoon.getMetaStore() );
       ThinConnection.localClient = clientService;
     } else {
       ThinConnection.localClient = null;
     }
+  }
+
+  private synchronized void setup( DataServiceClientService clientService, Repository repository,
+                                   IMetaStore metaStore ) {
+    if ( enabled.get() && clientService != null ) {
+      setLocalClient( clientService, repository, metaStore );
+    } else {
+      ThinConnection.localClient = null;
+    }
+  }
+
+  private synchronized void setLocalClient( DataServiceClientService clientService, Repository repository,
+                                            IMetaStore metaStore ) {
+    clientService.setRepository( repository );
+    clientService.setMetaStore( metaStore );
+    ThinConnection.localClient = clientService;
   }
 }
